@@ -34,3 +34,4 @@ create table if not exists `query_log` (
   `execdate` datetime default null
 );
 /*-----------------------------------------------------*/
+alter table data_final_amount add (start_date date, end_date date);
