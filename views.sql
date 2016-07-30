@@ -1,6 +1,6 @@
 /*------------------------------------------------------------------*/
 create or replace view vw_contracts_ranking as
-select  a.id, a.operator_id, a.service_id, a.start_date, a.end_date,
+select a.id, a.operator_id, a.service_id, a.start_date, a.end_date, a.component_direction,
         count(b.end_date)+1 as rank
 from  
     contracts a 
@@ -12,8 +12,10 @@ and
     a.operator_id=b.operator_id 
 and 
     a.service_id=b.service_id 
+and 
+	a.component_direction =b.component_direction
 group by 
-    a.id, a.operator_id, a.service_id, a.start_date, a.end_date;
+    a.id, a.operator_id, a.service_id, a.start_date, a.end_date, a.component_direction;
 /*------------------------------------------------------------------*/
 create or replace view vw_contract_recent
 as select * from vw_contracts_ranking where rank=1;
@@ -89,6 +91,8 @@ on
     mx.operator_id=o.id
 and
     mx.service_id=s.id 
+and	
+	mx.component_direction=v.component_direction
 left join 
 	vw_rate_profile_link vrp
 on	
