@@ -3,7 +3,8 @@ delimiter $$
 create table if not exists `data_final_details` (
   `id` int(10) unsigned not null auto_increment,
   `uniqueid` varchar(255) collate utf8_unicode_ci not null,
-  `data_final_id` int(10) unsigned not null,
+  `data_final_id` int(10) unsigned default null,
+  `component_direction` varchar(2) default null,
   `tier` varchar(255) collate utf8_unicode_ci not null,
   `product` varchar(255) collate utf8_unicode_ci not null,
   `rate_profile_detail_id` int(10) unsigned not null,

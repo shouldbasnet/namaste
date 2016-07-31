@@ -14,6 +14,7 @@ begin
 	declare v_end_date varchar(10);
 	declare v_is_vbr varchar(5);
 	declare v_rateprofileid varchar(200);
+	declare v_component_direction varchar(5);
 	declare v_rate_type varchar(20);
 	declare amountapplied double(15,2);
 	declare lastceiling int(20);
@@ -35,17 +36,19 @@ begin
 		sum(duration) as duration,
 		rate_profile_detail_id, 
 		rate_type, 
-		is_vbr
+		is_vbr,
+		component_direction
 	from 
-		vw_call_volume_link 
+		vw_call_volume_link where rate_profile_detail_id is not null
 	group by 
+		component_direction,
 		operator_code, 
 		serviceid,
 		date_format(start_date, '%d/%m/%Y'),
 		date_format(end_date, '%d/%m/%Y'),
 		rate_profile_detail_id, 
 		rate_type, 
-		is_vbr order by 1;
+		is_vbr ;
 	declare continue handler for not found set done = true; 
 /*--this is the handler that will check if fetch is complete, variable done is boolen defined above--*/
 /*----------------------------------------------------------------------------------*/
@@ -54,7 +57,7 @@ open maincursor;
 
 notvbr_loop: loop
 
-	fetch maincursor into v_uniqueid, v_tier_code, v_operator_code, v_serviceid, v_product_id, v_start_date, v_end_date, v_callduration, v_rateprofileid, v_rate_type, v_is_vbr;
+	fetch maincursor into v_uniqueid, v_tier_code, v_operator_code, v_serviceid, v_product_id, v_start_date, v_end_date, v_callduration, v_rateprofileid, v_rate_type, v_is_vbr,v_component_direction;
 
 if done then
     close maincursor;
@@ -249,6 +252,12 @@ hybrid_block: begin
 end hybrid_block;
 end if;
 /*----------------------------------------------------------------------------------*/
+set @v_query=concat('update data_final_details a set a.component_direction=''',v_component_direction,''' where a.uniqueid=''',v_uniqueid,''';');
+prepare stmt from @v_query;
+execute stmt;
+commit;
+deallocate prepare stmt; 
+/*----------------------------------*/
 set @v_query=null;
 /*----------------------------------*/
 end loop notvbr_loop;
@@ -264,8 +273,8 @@ commit;
 deallocate prepare stmt;
 set @v_query=null;
 /*-------------------------------------------*/
-set @v_query='insert into data_final_amount(billing_operator, billing_operator_name, event_duration_minutes, average_rate, total_amount, service_id, created_at, start_date, end_date)
-select a.billing_operator, o.name, sum(a.call_minutes), round(sum(a.amount)/sum(a.call_minutes),2), sum(a.amount), a.service_id, a.created_at, a.start_date, a.end_date
+set @v_query='insert into data_final_amount(date, component_direction, billing_operator, billing_operator_name, event_duration_minutes, average_rate, total_amount, service_id, created_at, start_date, end_date)
+select a.start_date, a.component_direction, a.billing_operator, o.name, sum(a.call_minutes), round(sum(a.amount)/sum(a.call_minutes),2), sum(a.amount), a.service_id, a.created_at, a.start_date, a.end_date
 from data_final_details a
 left join
 operators o
@@ -275,7 +284,7 @@ Concat(a.billing_operator, a.service_id,date_format(a.start_date,''%d%m%Y''),dat
 in 
 (select Concat(v.operator_code,v.serviceid,date_format(v.start_date,''%d%m%Y''),date_format(v.end_date,''%d%m%Y'')) 
 from vw_call_volume_link v)
-group by a.billing_operator, o.name, a.service_id, a.created_at, a.start_date, a.end_date';
+group by a.billing_operator, o.name, a.component_direction, a.service_id, a.created_at, a.start_date, a.end_date';
 prepare stmt from @v_query;
 execute stmt;
 commit;
@@ -284,7 +293,8 @@ set @v_query=null;
 /*-------------------------------------------*/	
 set @v_query='update data_final_details a, data_final_amount b
 set a.data_final_id= b.id
-where a.billing_operator=b.billing_operator and a.service_id=b.service_id and a.start_date=b.start_date and a.end_date=b.end_date';
+where a.billing_operator=b.billing_operator and a.service_id=b.service_id and a.start_date=b.start_date and a.end_date=b.end_date
+and a.deleted_at is not null';
 prepare stmt from @v_query;
 execute stmt;
 commit;
