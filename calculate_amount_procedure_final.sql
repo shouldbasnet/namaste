@@ -282,9 +282,9 @@ left join
 operators o
 on a.billing_operator=o.code
 where a.deleted_at is null and 
-Concat(a.billing_operator, a.component_direction, a.service_id,date_format(a.start_date,''%d%m%Y''),date_format(a.end_date,''%d%m%Y''))
+Concat(a.billing_operator, a.service_id,date_format(a.start_date,''%d%m%Y''),date_format(a.end_date,''%d%m%Y''))
 in 
-(select Concat(v.operator_code, v.component_direction, v.serviceid,date_format(v.start_date,''%d%m%Y''),date_format(v.end_date,''%d%m%Y'')) 
+(select Concat(v.operator_code, v.serviceid,date_format(v.start_date,''%d%m%Y''),date_format(v.end_date,''%d%m%Y'')) 
 from vw_call_volume_link v)
 group by a.billing_operator, o.name, a.component_direction, a.service_id, a.created_at, a.start_date, a.end_date';
 insert into query_log values('into data_final_amount', @v_query, sysdate());
