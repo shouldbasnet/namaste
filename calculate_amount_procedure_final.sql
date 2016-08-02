@@ -253,6 +253,7 @@ end hybrid_block;
 end if;
 /*----------------------------------------------------------------------------------*/
 set @v_query=concat('update data_final_details a set a.component_direction=''',v_component_direction,''' where a.uniqueid=''',v_uniqueid,''';');
+insert into query_log values('update component_direction in data_final_details', @v_query, sysdate());
 prepare stmt from @v_query;
 execute stmt;
 commit;
@@ -267,6 +268,7 @@ where concat(a.billing_operator,a.service_id,date_format(a.start_date,''%d%m%Y''
 IN
 (select Concat(b.operator_code, b.serviceid,date_format(b.start_date,''%d%m%Y''),date_format(b.end_date,''%d%m%Y'')) 
 from vw_call_volume_link b) and a.deleted_at is null';
+insert into query_log values('update data_final_amount', @v_query, sysdate());
 prepare stmt from @v_query;
 execute stmt;
 commit;
@@ -280,11 +282,12 @@ left join
 operators o
 on a.billing_operator=o.code
 where a.deleted_at is null and 
-Concat(a.billing_operator, a.service_id,date_format(a.start_date,''%d%m%Y''),date_format(a.end_date,''%d%m%Y''))
+Concat(a.billing_operator, a.component_direction, a.service_id,date_format(a.start_date,''%d%m%Y''),date_format(a.end_date,''%d%m%Y''))
 in 
-(select Concat(v.operator_code,v.serviceid,date_format(v.start_date,''%d%m%Y''),date_format(v.end_date,''%d%m%Y'')) 
+(select Concat(v.operator_code, v.component_direction, v.serviceid,date_format(v.start_date,''%d%m%Y''),date_format(v.end_date,''%d%m%Y'')) 
 from vw_call_volume_link v)
 group by a.billing_operator, o.name, a.component_direction, a.service_id, a.created_at, a.start_date, a.end_date';
+insert into query_log values('into data_final_amount', @v_query, sysdate());
 prepare stmt from @v_query;
 execute stmt;
 commit;
@@ -295,6 +298,7 @@ set @v_query='update data_final_details a, data_final_amount b
 set a.data_final_id= b.id
 where a.billing_operator=b.billing_operator and a.service_id=b.service_id and a.start_date=b.start_date and a.end_date=b.end_date
 and a.deleted_at is not null';
+insert into query_log values('assign data_final_id to data_final_details', @v_query, sysdate());
 prepare stmt from @v_query;
 execute stmt;
 commit;
